@@ -1,45 +1,88 @@
-from flask import Flask
-from app.models import db , Producto
+# Archivo: app/main.py
+from flask import Flask, redirect, render_template, url_for
+from app.models import db, Producto
+from app.forms import ProductoForm
 
 app = Flask(__name__)
-app.config['SECRET_KEY']="v123321"
-#configuración base de datos(En local SQLite)
-app.config["SQLALCHEMY_DATABASE_URI"]="sqlite:///tienda.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"]=False
+app.config["SECRET_KEY"] = "your_secret_key"
 
-#Vinculamos SQLAlchemy con nuestra app de Flask
+# Configuración de la base de datos SQLite local
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///tienda.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
 db.init_app(app)
 
 with app.app_context():
-    db.create_all()#Crea las tablas en la base de datos(si no existieran)
+    db.create_all()
+
     if not Producto.query.first():
-        nuevo_producto=Producto(
-            nombre="Teclmecanicoado ",
-            precio=49.99
+        nuevo_producto = Producto(
+            nombre="Teclado Mecánico RGB", precio=49.99, disponible=True
         )
-        nuevo_producto1=Producto(
-                    nombre="Raton",
-                    precio=50.99
-                )
-        pr=[nuevo_producto,nuevo_producto1]
-        
-        db.session.add_all(pr)
-        
+        db.session.add(nuevo_producto)
         db.session.commit()
-        print("producto de prueba insertado en bd <<<<<<<<<<<<<<<<<<<<<<<<")
+
+
 @app.route("/")
-def hello():
-    return "Hello, World!"
-
-@app.route("/test.db")
-def test_db():
-    productos=Producto.query.all()
-    return f"Todos los productos: {productos}"
+def home():
+    # Redirigimos la raíz directamente al catálogo
+    return redirect(url_for("mostrar_catalogo"))
 
 
+# 1. READ: Mostrar todos los productos en la plantilla catalogo.html
+@app.route("/catalogo")
+def mostrar_catalogo():
+    productos = Producto.query.all()
+    return render_template("catalogo.html", lista_productos=productos)
 
 
+# 2. CREATE: Mostrar formulario y guardar un nuevo producto en la BD
+@app.route("/producto/nuevo", methods=["GET", "POST"])
+def crear_producto():
+    form = ProductoForm()
+    if form.validate_on_submit():
+        nuevo_prod = Producto(
+            nombre=form.nombre.data,
+            precio=form.precio.data,
+            disponible=form.disponible.data,
+        )
+        db.session.add(nuevo_prod)
+        db.session.commit()
+        # Patrón PRG: Redirigimos tras procesar el POST con éxito
+        return redirect(url_for("mostrar_catalogo"))
 
+    return render_template("producto_form.html", form=form, titulo="Nuevo Producto")
+
+
+# 3. UPDATE: Recuperar un producto existente, rellenar el formulario y guardar cambios
+@app.route("/producto/<int:prod_id>/editar", methods=["GET", "POST"])
+def editar_producto(prod_id):
+    # Busca el producto por su clave primaria o lanza un error 404 si no existe
+    producto = db.get_or_404(Producto, prod_id)
+
+    # Al pasar obj=producto, en la petición GET los campos aparecen ya rellenos con los datos actuales
+    form = ProductoForm(obj=producto)
+
+    if form.validate_on_submit():
+        # Modificamos directamente los atributos del objeto recuperado de la BD
+        producto.nombre = form.nombre.data
+        producto.precio = form.precio.data
+        producto.disponible = form.disponible.data
+
+        # Confirmamos los cambios en la BD
+        db.session.commit()
+        return redirect(url_for("mostrar_catalogo"))
+
+    return render_template("producto_form.html", form=form, titulo="Editar Producto")
+
+
+# 4. DELETE: Eliminar un producto de la BD (exclusivamente por POST)
+@app.route("/producto/<int:prod_id>/eliminar", methods=["POST"])
+def eliminar_producto(prod_id):
+    producto = db.get_or_404(Producto, prod_id)
+    db.session.delete(producto)
+    db.session.commit()
+    return redirect(url_for("mostrar_catalogo"))
 
 
 if __name__ == "__main__":
