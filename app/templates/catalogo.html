@@ -11,6 +11,10 @@
 <ul>
     {% for prod in lista_productos %}
     <li style="margin-bottom: 12px;">
+        {% if prod.imagen %}
+            <img src="{{url_for('static',filename='img/uploads/'+prod.imagen)}}" alt="{{producto.nombre}}" width="100">
+        {% else %}
+            <span style="color: grey;">no imagen</span>
         <strong>{{ prod.nombre }}</strong> - {{ prod.precio }} €
         {% if prod.disponible %}
             <span style="color: green;">(En stock)</span>

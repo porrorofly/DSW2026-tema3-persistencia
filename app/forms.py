@@ -1,4 +1,5 @@
 # Archivo: app/forms.py
+
 from flask_wtf import FlaskForm
 from wtforms import BooleanField, FloatField, StringField, SubmitField
 from wtforms.validators import DataRequired, Length, NumberRange
@@ -24,7 +25,9 @@ class ProductoForm(FlaskForm):
     imagen= FileField(
         validators=[
             FileAllowed(['jpg','jpeg','png'],
-                        
+
+
+         
             'Solo se permiten imágenes(JPG,PNG)')
         ]
     )
