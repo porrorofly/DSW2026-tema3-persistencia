@@ -16,6 +16,7 @@
         {% else %}
             <span style="color: grey;">no imagen</span>
         <strong>{{ prod.nombre }}</strong> - {{ prod.precio }} €
+        {% endif %}
         {% if prod.disponible %}
             <span style="color: green;">(En stock)</span>
         {% else %}
@@ -33,7 +34,7 @@
         </form>
     </li>
     {% else %}
-    <li>No hay productos en la base de datos.</li>
+        <li>No hay productos en la base de datos.</li>
     {% endfor %}
 </ul>
 {% endblock %}

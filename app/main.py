@@ -97,7 +97,7 @@ def editar_producto(prod_id):
         db.session.commit()
         return redirect(url_for("mostrar_catalogo"))
 
-    return render_template(os.path.join("producto_form.html", form=form, titulo="Editar Producto"))
+    return render_template("producto_form.html", form=form, titulo="Editar Producto")
 
 
 # 4. DELETE: Eliminar un producto de la BD (exclusivamente por POST)
