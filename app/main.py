@@ -1,10 +1,10 @@
 # Archivo: app/main.py
 import os
 from werkzeug.utils import secure_filename
-from flask import Flask, redirect, render_template, url_for
+from flask import Flask, flash, make_response, redirect, render_template, session, url_for,request
 from app.models import db, Producto
 from app.forms import ProductoForm
-
+from datetime import timedelta
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your_secret_key"
 
@@ -14,6 +14,12 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 # Configurar la carpeta destino para las imágenes
 app.config["UPLOAD_FOLDER"] = os.path.join("app", "static", "img", "uploads")
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 * 1024 # Límite de 2MB por seguridad
+
+#configuración vida util de las sesiones permanentes(2días)
+app.config["PERMANENT_SESSION_LIFETIME"]=timedelta(days=2)
+
+
+
 
 db.init_app(app)
 
@@ -38,7 +44,8 @@ def home():
 @app.route("/catalogo")
 def mostrar_catalogo():
     productos = Producto.query.all()
-    return render_template("catalogo.html", lista_productos=productos)
+    ultimo=request.cookies.get("ultimo_visto")
+    return render_template("catalogo.html", lista_productos=productos,ultimo_visto=ultimo)
 
 
 # 2. CREATE: Mostrar formulario y guardar un nuevo producto en la BD
@@ -111,6 +118,43 @@ def eliminar_producto(prod_id):
     producto = db.get_or_404(Producto, prod_id)
     db.session.delete(producto)
     db.session.commit()
+    return redirect(url_for("mostrar_catalogo"))
+
+@app.route("/producto/<int:prod_id>")
+def ver_producto(prod_id):
+    producto = db.get_or_404(Producto, prod_id)
+    respuesta=make_response(render_template("producto_detalle.html",producto=producto))
+    #crea coockie
+    respuesta.set_cookie(
+        "ultimo_visto",
+        value=producto.nombre,
+        max_age=60*60*24*7,
+        httponly=True,
+        samesite="Lax"
+    )
+    return respuesta
+
+@app.route("/limpiar_historial")
+def limpiar_historial():
+    respuesta = make_response(redirect(url_for("mostrar_catalogo")))
+    # Ordena al navegador caducar y destruir la cookie de inmediato
+    respuesta.delete_cookie("ultimo_visto")
+    return respuesta
+
+
+
+@app.route("/carrito/add/<int:prod_id>,methods=['POST']")
+def add_carrito(prod_id):
+    session.permanent=True
+    
+
+
+    if "carrito" not in session:
+        session["carrito"]=[]
+
+    session["carrito"].append(prod_id)
+    session.modified=True
+    flash("Añadido el producto al carrito","Exito")
     return redirect(url_for("mostrar_catalogo"))
 
 

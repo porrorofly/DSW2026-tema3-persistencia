@@ -5,7 +5,7 @@
 
 {% block content %}
 <h1>Catálogo de Productos</h1>
-
+<h3>Último producto visto: {{ultimo_visto}}</h3>
 <p><a href="{{ url_for('crear_producto') }}">➕ Añadir nuevo producto</a></p>
 
 <ul>
@@ -17,9 +17,13 @@
             <span style="color: grey;">no imagen</span>
         
         {% endif %}
-        <strong>{{ producto.nombre }}</strong> - {{ producto.precio }} €
+        <a href="{{url_for('ver_producto',prod_id=producto.id)}}"><strong>{{producto.nombre}}</strong></a>
+         - {{ producto.precio }} €
         {% if producto.disponible %}
             <span style="color: green;">(En stock)</span>
+            <form method="post" action="{{url_for('add_carrito',prod_id=producto.id)}}">
+                <button type="submit">Carrito</button>
+            </form>
         {% else %}
             <span style="color: red;">(Agotado)</span>
         {% endif %}
