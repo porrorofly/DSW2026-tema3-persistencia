@@ -46,21 +46,22 @@ def mostrar_catalogo():
 def crear_producto():
     form = ProductoForm()
     if form.validate_on_submit():
-
-        if form.imagen.data:
-            archivo=form.imagen.data
-            nombre_imagen=secure_filename(archivo.filename)
+        nombre_imagen=None
+        
+        if form.archivo_imagen.data:
+            archivo=form.archivo_imagen.data
+            
             #asegurar de que la ruta existe
             os.makedirs(app.config["UPLOAD_FOLDER"],exist_ok=True)
-
+            nombre_imagen = secure_filename(archivo.filename)
             #Guardar el fichero
-            archivo.save(app.config["UPLOAD_FOLDER"],nombre_imagen)
+            archivo.save(os.path.join(app.config["UPLOAD_FOLDER"],nombre_imagen))
 
         nuevo_prod = Producto(
             nombre=form.nombre.data,
             precio=form.precio.data,
             disponible=form.disponible.data,
-            imagen=nombre_imagen if form.imagen.data else None
+            imagen=nombre_imagen 
         )
         db.session.add(nuevo_prod)
         db.session.commit()
@@ -78,26 +79,30 @@ def editar_producto(prod_id):
     
     # Al pasar obj=producto, en la petición GET los campos aparecen ya rellenos con los datos actuales
     form = ProductoForm(obj=producto)
-
-    if form.validate_on_submit():
-        if form.imagen.data:
-                archivo=form.imagen.data
-                nombre_imagen=secure_filename(archivo.filename)
-                #asegurar de que la ruta existe
-                os.makedirs(app.config["UPLOAD_FOLDER"],exist_ok=True)
         
-                #Guardar el fichero
-                archivo.save(app.config["UPLOAD_FOLDER"],nombre_imagen)
-        # Modificamos directamente los atributos del objeto recuperado de la BD
+    if form.validate_on_submit():
         producto.nombre = form.nombre.data
         producto.precio = form.precio.data
         producto.disponible = form.disponible.data
-        producto.imagen=nombre_imagen if form.imagen.data else form.imagen.data,
+        
+        #se actualizan los datos
+        if form.archivo_imagen.data:
+            archivo=form.archivo_imagen.data
+            nombre_imagen=secure_filename(archivo.filename)
+            #asegurar de que la ruta existe
+            os.makedirs(app.config["UPLOAD_FOLDER"],exist_ok=True)
+
+            #Guardar el fichero
+            print(nombre_imagen)
+            archivo.save(os.path.join(app.config["UPLOAD_FOLDER"],nombre_imagen))
+            producto.imagen=nombre_imagen 
+        # Modificamos directamente los atributos del objeto recuperado de la BD
+       
         # Confirmamos los cambios en la BD
         db.session.commit()
         return redirect(url_for("mostrar_catalogo"))
 
-    return render_template("producto_form.html", form=form, titulo="Editar Producto")
+    return render_template("producto_form.html", form=form, titulo="Editar Producto", producto=producto)
 
 
 # 4. DELETE: Eliminar un producto de la BD (exclusivamente por POST)
